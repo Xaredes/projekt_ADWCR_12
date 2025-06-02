@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # ... (wklej je tutaj)
 
 # UZUPEŁNIJ: Nazwa topiku
-TOPIC = 'mytopic'
+TOPIC = 'mytopic2'
 
 # Konfiguracja Kafki
 conf = {
@@ -40,31 +40,40 @@ try:
     while True:
         msg = consumer.poll(timeout=1.0)
         if msg is None:
+            print("Konsument: Odebrano None (timeout)")  # Dodane logowanie
             continue
         if msg.error():
-            print(f"Błąd konsumenta: {msg.error()}")
+            print(f"Konsument: Błąd konsumenta: {msg.error()}")
             continue
 
-        data = json.loads(msg.value().decode('utf-8'))
-        print(f"Odebrano z Kafka (topic: {TOPIC}): {data}")
-        data_log.append(data)
+        if msg.value() is not None:
+            raw_value = msg.value().decode('utf-8')
+            print(f"Konsument: Odebrano z Kafka (topic: {TOPIC}): {raw_value}")  # Dodane logowanie
+            try:
+                data = json.loads(raw_value)
+                # --- Twój oryginalny kod przetwarzania danych ---
+                df_raw = pd.DataFrame(data_log)
+                returns_df = df_raw[symbols].pct_change().dropna().reset_index(drop=True)
+                returns_df['timestamp'] = df_raw['timestamp'].iloc[1:].reset_index(drop=True)
 
-        # Przetwarzanie danych
-        df_raw = pd.DataFrame(data_log)
-        returns_df = df_raw[symbols].pct_change().dropna().reset_index(drop=True)
-        returns_df['timestamp'] = df_raw['timestamp'].iloc[1:].reset_index(drop=True)
+                if returns_df.empty:
+                    print("Za mało danych, aby policzyć zwroty.\n")
+                    continue
 
-        if returns_df.empty:
-            print("Za mało danych, aby policzyć zwroty.\n")
+                last_returns_row = returns_df[symbols].iloc[[-1]].reset_index(drop=True)
+                btc_dom = data.get('btc_dominance')
+                is_alt = detect_altseason(last_returns_row, btc_dom)
+                already_holding = list(portfolio['positions'].keys())
+                signals = generate_signals(is_alt, last_returns_row, already_holding=already_holding)
+                prices_now = {s: data[s] for s in symbols}
+                portfolio = log_and_backtest_advanced(signals, prices_now, portfolio)
+                # --- Koniec Twojego oryginalnego kodu ---
+            except json.JSONDecodeError as e:
+                print(f"Konsument: Błąd JSON: {e}, dla danych: {raw_value}")
+                continue  # Przejdź do następnej iteracji pętli
+        else:
+            print("Konsument: Odebrano pustą wiadomość (msg.value() is None)")  # Dodane logowanie
             continue
-
-        last_returns_row = returns_df[symbols].iloc[[-1]].reset_index(drop=True)
-        btc_dom = data.get('btc_dominance')
-        is_alt = detect_altseason(last_returns_row, btc_dom)
-        already_holding = list(portfolio['positions'].keys())
-        signals = generate_signals(is_alt, last_returns_row, already_holding=already_holding)
-        prices_now = {s: data[s] for s in symbols}
-        portfolio = log_and_backtest_advanced(signals, prices_now, portfolio)
 
 except KeyboardInterrupt:
     print("Zatrzymano konsumenta.")
