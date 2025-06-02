@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Konfiguracja Kafki ---
-TOPIC = 'mytopic5'
+TOPIC = 'mytopic6'
 conf = {
     'bootstrap.servers': 'broker:9092',
     'group.id': 'altseason_consumer_group',
@@ -24,20 +24,7 @@ required_keys = symbols + ['timestamp', 'btc_dominance']  # Wszystkie wymagane k
 
 # --- Inicjalizacja ---
 data_log = []
-portfolio = {
-    'cash': 5635.0,
-    'positions': {
-        'BTC/USDT': {'qty': 0.05, 'entry_price': 28000.0, 'allocated': 1400.0},
-        'ETH/USDT': {'qty': 0.50, 'entry_price': 1800.0, 'allocated': 900.0},
-        'ADA/USDT': {'qty': 1000.0, 'entry_price': 0.40, 'allocated': 400.0},
-        'SOL/USDT': {'qty': 20.0, 'entry_price': 22.00, 'allocated': 440.0},
-        'LTC/USDT': {'qty': 10.0, 'entry_price': 100.00, 'allocated': 1000.0},
-        'DOT/USDT': {'qty': 5.0, 'entry_price': 25.00, 'allocated': 125.0},
-        'XRP/USDT': {'qty': 200.0, 'entry_price': 0.50, 'allocated': 100.0}
-    },
-    'initial_value': 10000.0,
-    'history': []
-}
+portfolio = { /* ... Twoje portfolio ... */ }
 
 # --- Główna pętla ---
 try:
