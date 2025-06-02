@@ -21,7 +21,7 @@ def recommend(is_altseason, df):
 
 # Połączenie z brokerem Kafka (zmiana na poprawny IP)
 consumer = KafkaConsumer(
-    'crypto-prices',
+    'crypto-prices2',
     bootstrap_servers='172.18.0.28:9092',
     value_deserializer=lambda m: json.loads(m.decode('utf-8')),
     auto_offset_reset='latest',

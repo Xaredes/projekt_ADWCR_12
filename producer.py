@@ -25,7 +25,7 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
-topic = 'crypto-prices'
+topic = 'crypto-prices2'
 
 # Wysyłanie danych co 5 sekund
 while True:
