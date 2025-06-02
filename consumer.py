@@ -1,16 +1,15 @@
-# === consumer.py ===
 from kafka import KafkaConsumer
 import json
 import pandas as pd
 
-# Funkcja do wykrywania altseason
+# Wykrywanie altseason
 def detect_altseason(df):
     btc_return = df.get('BTC/USDT', 0)
     altcoins = [col for col in df if col != 'BTC/USDT' and 'USDT' in col]
     alt_returns = sum(df[c] for c in altcoins) / len(altcoins)
     return (alt_returns - btc_return) > 0.01
 
-# Funkcja do rekomendacji handlowych
+# Generowanie rekomendacji
 def recommend(is_altseason, df):
     signals = {}
     for coin, return_value in df.items():
@@ -20,10 +19,10 @@ def recommend(is_altseason, df):
             signals[coin] = 'SELL'
     return signals
 
-# Konfiguracja konsumenta
+# Połączenie z brokerem Kafka (zmiana na poprawny IP)
 consumer = KafkaConsumer(
     'crypto-prices',
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers='172.18.0.28:9092',
     value_deserializer=lambda m: json.loads(m.decode('utf-8')),
     auto_offset_reset='latest',
     enable_auto_commit=True
@@ -33,7 +32,7 @@ data_log = []
 
 for message in consumer:
     record = message.value
-    print(f"Received: {record}")
+    print(f"📥 Received from Kafka: {record}")
     data_log.append(record)
 
     if len(data_log) < 10:
@@ -46,5 +45,5 @@ for message in consumer:
     is_alt = detect_altseason(pct_returns)
     signal = recommend(is_alt, pct_returns)
 
-    print(f"Altseason: {is_alt}")
-    print(f"Signals: {signal}\n")
+    print(f"🚨 Altseason Detected: {is_alt}")
+    print(f"📊 Trading Signals: {signal}\n")
