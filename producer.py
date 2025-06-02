@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Konfiguracja Kafki ---
-TOPIC = 'mytopic3'
+TOPIC = 'mytopic5'
 conf = {
     'bootstrap.servers': 'broker:9092',
     'group.id': 'altseason_consumer_group',

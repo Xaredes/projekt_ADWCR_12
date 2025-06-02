@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # ... (wklej je tutaj)
 
 # UZUPEŁNIJ: Nazwa topiku
-TOPIC = 'mytopic3'
+TOPIC = 'mytopic5'
 
 # Konfiguracja Kafki
 conf = {
