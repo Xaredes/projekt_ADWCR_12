@@ -6,7 +6,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt  # Dodajemy import matplotlib
 
 # --- Konfiguracja ---
-TOPIC = 'mytopic9'  # Zmień na nazwę swojego topiku Kafka
+TOPIC = 'mytopic10'  # Zmień na nazwę swojego topiku Kafka
 BOOTSTRAP_SERVERS = 'broker:9092'  # Adres brokera Kafka
 GROUP_ID = 'my_consumer_group'  # Unikalna nazwa grupy konsumentów
 SYMBOLS = [
@@ -300,7 +300,8 @@ try:
                 # --- Tworzenie DataFrame z JEDNEJ odebranej wiadomości ---
                 new_row_df = pd.DataFrame([data])
 
-                global data_log_df  # Deklaracja globalna
+                # --- Deklaracja globalna (NA SAMYM POCZĄTKU pętli) ---
+                global data_log_df
 
                 # --- Dołączanie nowego wiersza do istniejącego DataFrame ---
                 if data_log_df.empty:
