@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # ... (wklej je tutaj)
 
 # UZUPEŁNIJ: Nazwa topiku
-TOPIC = 'mytopic2'
+TOPIC = 'mytopic3'
 
 # Konfiguracja Kafki
 conf = {
@@ -19,6 +19,8 @@ conf = {
 
 consumer = Consumer(conf)
 consumer.subscribe([TOPIC])
+
+symbols = ['BTC/USDT', 'ETH/USDT', 'ADA/USDT', 'SOL/USDT', 'LTC/USDT', 'DOT/USDT', 'XRP/USDT']
 
 data_log = []
 portfolio = {

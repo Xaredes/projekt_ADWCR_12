@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 # UZUPEŁNIJ: Nazwa topiku
-TOPIC = 'mytopic2'
+TOPIC = 'mytopic3'
 
 # Konfiguracja Kafki
 conf = {'bootstrap.servers': 'broker:9092'}
