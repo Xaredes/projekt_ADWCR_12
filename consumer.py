@@ -3,9 +3,10 @@ import json
 import pandas as pd
 import logging
 from datetime import datetime
+import matplotlib.pyplot as plt  # Dodajemy import matplotlib
 
 # --- Konfiguracja ---
-TOPIC = 'mytopic8'  # Zmień na nazwę swojego topiku Kafka
+TOPIC = 'mytopic9'  # Zmień na nazwę swojego topiku Kafka
 BOOTSTRAP_SERVERS = 'broker:9092'  # Adres brokera Kafka
 GROUP_ID = 'my_consumer_group'  # Unikalna nazwa grupy konsumentów
 SYMBOLS = [
@@ -167,7 +168,7 @@ def log_and_backtest_advanced(signals_dict, prices_dict, portfolio_state):
     total_val = portfolio_state['cash']
     for c_sym, pos in portfolio_state['positions'].items():
         if c_sym in prices_dict:
-            total_val += pos['qty'] * prices_dict[c_sym]
+            total_val += pos['qty'] * prices_dict.get(c_sym, 0)
 
     # 3. Zapis do historii
     portfolio_state['history'].append({
@@ -200,10 +201,78 @@ def log_and_backtest_advanced(signals_dict, prices_dict, portfolio_state):
 
     return portfolio_state
 
-# --- Główna pętla konsumenta ---
+def evaluate_performance(history_list):
+    """
+    - history_list: lista słowników [{'timestamp': dt, 'value': float}, ...]
+    Buduje DataFrame, liczy zwroty i Sharpe Ratio, rysuje wykres wartości portfela.
+    Zwraca (DataFrame, sharpe).
+    """
+    dfh = pd.DataFrame(history_list)
+    dfh.set_index('timestamp', inplace=True)
+    dfh.sort_index(inplace=True)
+    dfh['returns'] = dfh['value'].pct_change()
+
+    # Przybliżony Sharpe (zakładamy 365 prób rocznie)
+    sharpe = dfh['returns'].mean() / dfh['returns'].std() * (365 ** 0.5)
+
+    plt.figure(figsize=(9, 5))
+    plt.plot(dfh.index, dfh['value'], marker='o', linestyle='-')
+    plt.title(f"Wartość portfela | Sharpe Ratio: {sharpe:.2f}")
+    plt.xlabel("Czas")
+    plt.ylabel("Wartość portfela (USDT)")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return dfh, sharpe
+
+# --- Inicjalizacja portfela ---
+portfolio = {
+    'cash': 5635.0,
+    'positions': {
+        'BTC/USDT': {
+            'qty': 0.05,
+            'entry_price': 28000.0,
+            'allocated': 1400.0
+        },
+        'ETH/USDT': {
+            'qty': 0.50,
+            'entry_price': 1800.0,
+            'allocated': 900.0
+        },
+        'ADA/USDT': {
+            'qty': 1000.0,
+            'entry_price': 0.40,
+            'allocated': 400.0
+        },
+        'SOL/USDT': {
+            'qty': 20.0,
+            'entry_price': 22.00,
+            'allocated': 440.0
+        },
+        'LTC/USDT': {
+            'qty': 10.0,
+            'entry_price': 100.00,
+            'allocated': 1000.0
+        },
+        'DOT/USDT': {
+            'qty': 5.0,
+            'entry_price': 25.00,
+            'allocated': 125.0
+        },
+        'XRP/USDT': {
+            'qty': 200.0,
+            'entry_price': 0.50,
+            'allocated': 100.0
+        }
+    },
+    'initial_value': 10000.0,
+    'history': []
+}
+
 try:
     while True:
-        msg = consumer.poll(timeout=1.0)  # Czekaj na wiadomość
+        msg = consumer.poll(timeout=1.0)
 
         if msg is None:
             continue
@@ -213,8 +282,8 @@ try:
                 continue
             else:
                 logging.error(f"Błąd Kafka: {msg.error()}")
-                break  # Lub obsłuż inaczej
-        # --- Przetwarzanie odebranej wiadomości ---
+                break
+
         if msg.value() is not None:
             raw_value = msg.value().decode('utf-8')
             logging.info(f"Odebrano z Kafka (topic: {TOPIC}): {raw_value}")
@@ -226,24 +295,25 @@ try:
                     logging.error(f"Brak wymaganych kluczy w danych: {raw_value}")
                     for key in REQUIRED_KEYS:
                         if key not in data:
-                            data[key] = None  # Uzupełnij brakujące klucze None
+                            data[key] = None
 
                 # --- Tworzenie DataFrame z JEDNEJ odebranej wiadomości ---
                 new_row_df = pd.DataFrame([data])
 
-                global data_log_df  # Oznaczamy, że używamy globalnej zmiennej
+                global data_log_df  # Deklaracja globalna
 
                 # --- Dołączanie nowego wiersza do istniejącego DataFrame ---
-                data_log_df = pd.concat([data_log_df, new_row_df],
-                                          ignore_index=True)
+                if data_log_df.empty:
+                    data_log_df = new_row_df.copy()  # Pierwszy wiersz
+                else:
+                    data_log_df = pd.concat([data_log_df, new_row_df], ignore_index=True)
 
                 # --- Przetwarzanie danych ---
                 try:
-                    if len(data_log_df) > 1:  # Potrzebujemy co najmniej 2 wierszy
+                    if len(data_log_df) > 1:
                         returns_df = data_log_df[SYMBOLS].pct_change().dropna().reset_index(drop=True)
-                        returns_df['timestamp'] = data_log_df['timestamp'].iloc[1:].reset_index(drop=True)
-
-                        if not returns_df.empty:
+                        if not returns_df.empty:  # Dodana kontrola
+                            returns_df['timestamp'] = data_log_df['timestamp'].iloc[1:].reset_index(drop=True)
                             last_returns_row = returns_df[SYMBOLS].iloc[[-1]].reset_index(drop=True)
                             btc_dom = data_log_df['btc_dominance'].iloc[-1]
                             is_alt = detect_altseason(last_returns_row, btc_dom)
@@ -258,12 +328,9 @@ try:
                             portfolio = log_and_backtest_advanced(
                                 signals, prices_now, portfolio)
                         else:
-                            logging.warning(
-                                "Za mało danych, aby policzyć zwroty.\n")
+                            logging.warning("Brak wystarczających danych do analizy zwrotów.")
                     else:
-                        logging.info(
-                            "Odebrano pierwszą wiadomość, czekam na więcej danych."
-                        )
+                        logging.info("Odebrano pierwszą wiadomość, czekam na więcej danych.")
 
                 except KeyError as e:
                     logging.error(
@@ -274,7 +341,7 @@ try:
             except json.JSONDecodeError as e:
                 logging.error(f"Błąd JSON: {e}, dla danych: {raw_value}")
                 continue
-        # --- Koniec przetwarzania ---
+        # --- Koniec pętli while ---
 
 except KeyboardInterrupt:
     print("Zatrzymano konsumenta.")

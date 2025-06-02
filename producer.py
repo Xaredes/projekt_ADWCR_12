@@ -7,7 +7,7 @@ from datetime import datetime
 import logging
 
 # --- Konfiguracja ---
-TOPIC = 'mytopic8'  # Zmień na nazwę swojego topiku Kafka
+TOPIC = 'mytopic9'  # Zmień na nazwę swojego topiku Kafka
 BOOTSTRAP_SERVERS = 'broker:9092'  # Adres brokera Kafka
 EXCHANGE = 'kucoin'  # Wybierz giełdę (ccxt)
 SYMBOLS = [
